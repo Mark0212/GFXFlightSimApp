@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld('fl', {
   setRemote: r => ipcRenderer.invoke('setRemote', r),
   open: which => ipcRenderer.invoke('open', which),
   copy: text => ipcRenderer.invoke('copy', text),
+  updateNow: () => ipcRenderer.invoke('updateNow'),
+  updateLater: () => ipcRenderer.invoke('updateLater'),
+  updateCheck: () => ipcRenderer.invoke('updateCheck'),
 });

@@ -1,7 +1,7 @@
 {
   "name": "goalforgex-flightlink",
   "productName": "GoalForgeX FlightLink",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GoalForgeX FlightLink — sends Microsoft Flight Simulator 2024 telemetry to your GoalForgeX Scene Studio overlays.",
   "author": "GoalForgeX",
   "license": "UNLICENSED",

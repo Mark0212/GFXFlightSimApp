@@ -10,6 +10,7 @@ const { SimLink } = require('./sim');
 const { DemoSim } = require('./demo');
 const { FlightTracker } = require('./tracker');
 const { Cloud } = require('./cloud');
+const { Updater } = require('./updater');
 
 const VERSION = app.getVersion();
 const argServer = (process.argv.find(a => a.startsWith('--server=')) || '').slice(9);
@@ -42,6 +43,18 @@ const cloud = new Cloud({ server, version: VERSION, getToken, setToken });
 cloud.setRate(settings.rate);
 cloud.account = settings.account;
 const tracker = new FlightTracker();
+// Auto-update: only in the installed app (a dev run from source never replaces itself).
+const updater = new Updater({
+  current: VERSION, dir: app.getPath('temp'), enabled: app.isPackaged,
+  getLatest: () => cloud.latestVersion(),
+  isFlying: () => !!(simStatus.connected && simStatus.inSim && !demoOn),
+  quit: () => { real.stop(); demo.stop(); cloud.stop(); app.exit(0); },
+});
+updater.on('state', st => {
+  if (st.state === 'ready' && !updater._logged) { updater._logged = true; log(`FlightLink ${st.version} downloaded — it installs when you're not flying (or press Update now).`); }
+  if (st.state === 'available' && !updater._loggedA) { updater._loggedA = true; log(`FlightLink ${st.version} is available on the FlightLink page.`); }
+  if (st.state === 'error') log('Update: ' + st.error);
+});
 const real = new SimLink({ remote: settings.remote });
 const demo = new DemoSim();
 
@@ -50,7 +63,6 @@ let simStatus = { connected: false, inSim: false, paused: false, simName: null, 
 let latestT = {}, lastSampleAt = 0;
 const recent = []; // events shown in the window
 const logLines = [];
-let update = null;
 function log(s) { logLines.push({ at: Date.now(), text: String(s) }); if (logLines.length > 60) logLines.shift(); }
 
 function source() { return demoOn ? demo : real; }
@@ -62,7 +74,7 @@ function onStatus(src, st) {
   const was = simStatus.connected;
   simStatus = st;
   if (st.connected && !was) { log(`Connected to ${st.simName || 'the sim'}.`); tracker.reset(); }
-  if (!st.connected && was) log(st.error || 'Sim disconnected.');
+  if (!st.connected && was) { log(st.error || 'Sim disconnected.'); if (updater) updater.simIdle(); }
   cloud.push(simForCloud(), latestT, []);
 }
 function onData(src, s) {
@@ -119,7 +131,7 @@ function state() {
   return {
     version: VERSION, server, demo: demoOn, sim: simStatus, sampleAgeMs: lastSampleAt ? Date.now() - lastSampleAt : null,
     account: cloud.account, linking: cloud.linking ? { code: cloud.linking.code, url: cloud.linking.url, expiresAt: cloud.linking.expiresAt } : null,
-    stats: cloud.stats, rate: cloud.rate, remote: settings.remote, t: latestT, events: recent.slice(0, 25), log: logLines.slice(-12), update,
+    stats: cloud.stats, rate: cloud.rate, remote: settings.remote, t: latestT, events: recent.slice(0, 25), log: logLines.slice(-12), update: updater ? updater.state : null,
   };
 }
 ipcMain.handle('state', () => state());
@@ -141,6 +153,9 @@ ipcMain.handle('open', (_e, which) => {
   if (which === 'link' && cloud.linking) shell.openExternal(cloud.linking.url);
   return true;
 });
+ipcMain.handle('updateNow', () => (updater ? updater.install(true) : false));
+ipcMain.handle('updateLater', () => { if (updater) updater.later(); return true; });
+ipcMain.handle('updateCheck', () => { if (updater) updater.check(); return true; });
 ipcMain.handle('copy', (_e, text) => { clipboard.writeText(String(text || '').slice(0, 20000)); return true; });
 
 app.whenReady().then(async () => {
@@ -152,10 +167,14 @@ app.whenReady().then(async () => {
   setInterval(() => { if (getToken()) cloud.checkAccount(); }, 5 * 60 * 1000).unref();
   // heartbeat even before the first sample, so the site knows the app is open
   cloud.push(simForCloud(), latestT, []);
-  const u = await cloud.latestVersion();
-  if (u && u.version && cmpVer(u.version, VERSION) > 0) { update = { version: u.version, url: u.url }; log(`FlightLink ${u.version} is available.`); }
+  updater.start();
 });
-app.on('window-all-closed', () => { real.stop(); demo.stop(); cloud.stop(); app.quit(); });
+app.on('window-all-closed', () => {
+  real.stop(); demo.stop(); cloud.stop();
+  // an update finished downloading → install it on the way out (no relaunch: they closed the app)
+  if (updater && updater.installOnQuit()) return;
+  app.quit();
+});
 
 function cmpVer(a, b) {
   const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);

@@ -33,6 +33,11 @@ h2{margin:0;font-size:14px;font-weight:700;letter-spacing:.02em}
 .btn.small{padding:5px 10px;font-size:12.5px}
 .btn.danger{background:transparent;border-color:#5b2a35;color:#fca5a5}
 .update{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 14px;border-radius:12px;background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.4)}
+.upd-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.upd-text small{color:var(--mut)}
+.upd-bar{height:6px;border-radius:3px;background:#24223a;overflow:hidden;margin-top:6px;max-width:420px}
+.upd-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8b5cf6,#c4b5fd);transition:width .3s}
+.upd-acts{display:flex;gap:8px}
 .linkbox{display:flex;align-items:center;justify-content:space-between;gap:20px;border-color:rgba(139,92,246,.55);box-shadow:0 0 40px rgba(139,92,246,.18)}
 .linkbox p{margin:6px 0 12px;color:var(--mut)}
 .linkbox .acts{display:flex;gap:8px}

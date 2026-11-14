@@ -35,8 +35,30 @@ function setCard(id, cls) { const c = $(id); c.classList.remove('ok', 'warn', 'b
 function render() {
   if (!S) return;
   $('ver').textContent = 'v' + S.version;
-  // update
-  $('update').hidden = !S.update; if (S.update) $('updVer').textContent = 'FlightLink ' + S.update.version;
+  // auto-update banner
+  const U = S.update || {}, show = ['available', 'downloading', 'ready', 'installing'].includes(U.state);
+  $('update').hidden = !show;
+  if (show) {
+    const v = 'FlightLink ' + U.version;
+    $('updBar').hidden = U.state !== 'downloading';
+    $('updFill').style.width = (U.pct || 0) + '%';
+    let title = '', sub = '', acts = '';
+    if (U.state === 'available') { title = `⬆️ ${v} is available`; sub = 'Get it from the FlightLink page.'; acts = '<button class="btn small" data-open="update">Get the update</button>'; }
+    if (U.state === 'downloading') { title = `⬇️ Downloading ${v}… ${U.pct || 0}%`; sub = 'Keeps working while it downloads.'; }
+    if (U.state === 'ready') {
+      title = `✅ ${v} is ready`;
+      sub = U.countdown != null ? `Installing in ${U.countdown} s — FlightLink restarts by itself in a few seconds.` : 'It installs when you\'re not flying, or when you close FlightLink.';
+      acts = '<button class="btn small" id="updNow">Update now</button>' + (U.countdown != null ? '<button class="btn small ghost" id="updLater">Later</button>' : '');
+    }
+    if (U.state === 'installing') { title = `Installing ${v}…`; sub = 'FlightLink restarts by itself.'; }
+    $('updTitle').textContent = title; $('updSub').textContent = sub;
+    if ($('updActs').dataset.k !== U.state + (U.countdown != null)) {
+      $('updActs').dataset.k = U.state + (U.countdown != null);
+      $('updActs').innerHTML = acts;
+      if ($('updNow')) $('updNow').onclick = () => fl.updateNow();
+      if ($('updLater')) $('updLater').onclick = () => fl.updateLater().then(tick);
+    }
+  }
   // sim
   const sim = S.sim || {};
   if (sim.connected) {
