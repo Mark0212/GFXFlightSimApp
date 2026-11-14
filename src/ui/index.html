@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'">
+<title>GoalForgeX FlightLink</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<header class="bar">
+  <img class="logo" src="logo.png" alt="">
+  <div class="brand"><b>GoalForgeX</b> <span>FlightLink</span></div>
+  <span class="ver" id="ver">v1.0.0</span>
+  <span class="tag">Flight Sim Integration</span>
+</header>
+
+<main>
+  <div class="update" id="update" hidden>
+    <span>⬆️ <b id="updVer"></b> is available.</span><button class="btn small" data-open="update">Get the update</button>
+  </div>
+
+  <section class="cards">
+    <article class="card status" id="cSim">
+      <div class="st-head"><i class="dot"></i><h2>Flight Simulator</h2></div>
+      <div class="st-main" id="simMain">Waiting for the sim…</div>
+      <div class="st-sub" id="simSub">Start Microsoft Flight Simulator 2024 — FlightLink connects by itself.</div>
+    </article>
+    <article class="card status" id="cAcc">
+      <div class="st-head"><i class="dot"></i><h2>GoalForgeX account</h2></div>
+      <div class="st-main" id="accMain">Not connected</div>
+      <div class="st-sub" id="accSub">Connect once — it stays connected.</div>
+      <div class="st-acts" id="accActs"></div>
+    </article>
+    <article class="card status" id="cUp">
+      <div class="st-head"><i class="dot"></i><h2>Sending to your site</h2></div>
+      <div class="st-main" id="upMain">Idle</div>
+      <div class="st-sub" id="upSub">—</div>
+    </article>
+  </section>
+
+  <section class="card linkbox" id="linkBox" hidden>
+    <div>
+      <h2>Approve FlightLink on GoalForgeX</h2>
+      <p>Your browser opened GoalForgeX. Sign in if asked, check the code matches, then press <b>Approve</b>.</p>
+      <div class="acts"><button class="btn" data-open="link">Open the page again</button><button class="btn ghost" id="cancelLink">Cancel</button></div>
+    </div>
+    <div class="code" id="linkCode">XXXX-XXXX</div>
+  </section>
+
+  <section class="grid">
+    <article class="card panel">
+      <div class="panel-head"><h2>Live instruments</h2><span class="phase" id="phase">—</span></div>
+      <div class="inst">
+        <div class="gauge">
+          <svg viewBox="0 0 200 200" class="adi" aria-label="Attitude">
+            <defs><clipPath id="adiClip"><circle cx="100" cy="100" r="88"/></clipPath></defs>
+            <g clip-path="url(#adiClip)"><g id="adiHorizon">
+              <rect x="-200" y="-300" width="600" height="400" fill="#2f6fd6"/>
+              <rect x="-200" y="100" width="600" height="400" fill="#7a4a22"/>
+              <line x1="-200" y1="100" x2="400" y2="100" stroke="#fff" stroke-width="2"/>
+              <g stroke="#fff" stroke-width="1.5" opacity=".85">
+                <line x1="80" y1="60" x2="120" y2="60"/><line x1="88" y1="80" x2="112" y2="80"/>
+                <line x1="88" y1="120" x2="112" y2="120"/><line x1="80" y1="140" x2="120" y2="140"/>
+              </g>
+            </g></g>
+            <circle cx="100" cy="100" r="88" fill="none" stroke="#2a2840" stroke-width="6"/>
+            <path d="M52 100h30l8 10 10-10 10 10 8-10h30" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linejoin="round"/>
+          </svg>
+          <span>Attitude</span>
+        </div>
+        <div class="gauge">
+          <svg viewBox="0 0 200 200" class="hsi" aria-label="Heading">
+            <circle cx="100" cy="100" r="88" fill="#0d0c18" stroke="#2a2840" stroke-width="6"/>
+            <g id="rose"></g>
+            <path d="M100 52l12 52-12-8-12 8z" fill="#c4b5fd"/>
+            <text x="100" y="134" class="hdgtxt" id="hdgTxt">000°</text>
+          </svg>
+          <span>Heading</span>
+        </div>
+        <div class="readouts">
+          <div class="ro"><small>Altitude</small><b id="rAlt">—</b><i>ft</i></div>
+          <div class="ro"><small>Airspeed</small><b id="rIas">—</b><i>kt</i></div>
+          <div class="ro"><small>Vertical speed</small><b id="rVs">—</b><i>fpm</i></div>
+          <div class="ro"><small>Ground speed</small><b id="rGs">—</b><i>kt</i></div>
+          <div class="ro"><small>Above ground</small><b id="rAgl">—</b><i>ft</i></div>
+          <div class="ro"><small>Fuel</small><b id="rFuel">—</b><i>%</i></div>
+        </div>
+      </div>
+      <div class="chips" id="chips"></div>
+    </article>
+
+    <article class="card panel">
+      <div class="panel-head"><h2>Flight events</h2><small class="muted">sent to your scenes the moment they happen</small></div>
+      <ul class="events" id="events"><li class="muted">Nothing yet — take off, land, drop the gear…</li></ul>
+    </article>
+  </section>
+
+  <section class="card panel">
+    <div class="panel-head">
+      <h2>Everything being sent <span class="muted" id="keyCount"></span></h2>
+      <input id="filter" class="filter" type="search" placeholder="Filter values…">
+      <button class="btn small ghost" id="copyJson" title="Copy the current telemetry as JSON">Copy JSON</button>
+    </div>
+    <div class="tele" id="tele"><div class="muted">No telemetry yet.</div></div>
+  </section>
+
+  <section class="card panel settings">
+    <div class="set">
+      <label class="switch"><input type="checkbox" id="demo"><span></span></label>
+      <div><b>Demo flight</b><small>Flies a pretend 4-minute loop so you can build and test your overlay without the sim.</small></div>
+    </div>
+    <div class="set">
+      <select id="rate"><option value="2">2 per second</option><option value="4">4 per second</option><option value="6">6 per second</option><option value="10">10 per second</option></select>
+      <div><b>Update rate</b><small>How often the overlay gets new numbers. 4 is smooth and light.</small></div>
+    </div>
+    <div class="set">
+      <select id="conn"><option value="local">This PC</option><option value="remote">Another PC…</option></select>
+      <div><b>Sim runs on</b><small id="connNote">The sim and FlightLink are on the same PC.</small></div>
+    </div>
+    <div class="set remote" id="remoteRow" hidden>
+      <input id="rHost" placeholder="IP address, e.g. 192.168.1.20"><input id="rPort" placeholder="Port" value="500" inputmode="numeric">
+      <button class="btn small" id="rSave">Save</button>
+    </div>
+    <div class="links">
+      <button class="btn" data-open="docs">📘 Flight Sim docs</button>
+      <button class="btn ghost" data-open="scenes">🎬 Scene Studio</button>
+      <button class="btn ghost" data-open="page">🌐 FlightLink page</button>
+    </div>
+  </section>
+
+  <section class="log" id="log"></section>
+</main>
+<script src="ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+# Builds the Windows installer and publishes it as a GitHub release when a v* tag is pushed.
+# The site's /flightlink/download button (flightsim.js) always serves the newest release's
+# goalforgex-flightlink-X.Y.Z-windows-x64-installer.exe — publishing a release is all it takes.
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Build installer
+        run: npx electron-builder --win nsis --x64 --publish never
+      - name: Hash
+        id: hash
+        shell: pwsh
+        run: |
+          $f = Get-ChildItem dist\goalforgex-flightlink-*-windows-x64-installer.exe | Select-Object -First 1
+          $h = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
+          "file=$($f.FullName)" >> $env:GITHUB_OUTPUT
+          "line=$($f.Name): $h" >> $env:GITHUB_OUTPUT
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.hash.outputs.file }}
+          body: |
+            GoalForgeX FlightLink — Microsoft Flight Simulator telemetry for GoalForgeX Scene Studio.
+
+            ${{ steps.hash.outputs.line }}
+      - name: Keep the installer (manual runs)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist/*.exe
